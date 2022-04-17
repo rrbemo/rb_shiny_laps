@@ -2,7 +2,7 @@ library(tidyverse)
 library(lubridate)
 library(plotly)
 
-all_laps <- read_csv("/home/bemo/Documents/Git/fast_f1/2022_australia.csv") 
+all_laps <- read_csv("2022_australia.csv") 
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
