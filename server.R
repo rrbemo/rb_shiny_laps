@@ -27,20 +27,21 @@ server <- function(input, output) {
            LapTime = ifelse(!is.na(LapTime),
                             seconds(hms(substr(LapTime, 8, 20))),
                             NA),
-           TyreLife = as.integer(as.character(TyreLife)))
+           TyreLife = as.integer(as.character(TyreLife))) %>%
+    mutate(LapEndTime = LapStartTime + LapTime)
   # Filter out slow and pit laps
 #  laps <- laps %>%
 #    filter(TrackStatus == "1")
 #    filter(LapTime <= min(laps$LapTime) * 1.2) #%>%
 #    filter(PitLap == FALSE)
   
-  lap_start_times <- laps %>%
+  lap_end_times <- laps %>%
     group_by(LapNumber) %>%
-    summarise(FirstLapStartTime = min(LapStartTime, na.rm = TRUE))
+    summarise(MinLapEndTime = min(LapEndTime, na.rm = TRUE))
   
   laps <- laps %>%
-    left_join(lap_start_times, by = c("LapNumber")) %>%
-    mutate(TimeToLeader = LapStartTime - FirstLapStartTime)
+    left_join(lap_end_times, by = c("LapNumber")) %>%
+    mutate(TimeToLeader = LapEndTime - MinLapEndTime)
   
   #plot(laps$Sector1Time, laps$TyreLife)
   my_color <- c("red", "gold", "gray")
@@ -56,7 +57,8 @@ server <- function(input, output) {
       add_trace(name = ~Driver, data = laps, 
                 x = ~LapNumber, y = ~TimeToLeader,
                 legendgroup = ~Driver,
-                mode = "lines") %>%
+                mode = "lines",
+                connectgaps = TRUE) %>%
       add_trace(name = ~Driver, 
                 data = laps[laps$PitInLap == TRUE,],
                 x = ~LapNumber, y = ~TimeToLeader,

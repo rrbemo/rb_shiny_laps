@@ -1,5 +1,9 @@
 library(shiny)
+library(shinycssloaders)
+library(shinydashboard)
 library(shinyWidgets)
+library(shinyjs)
+library(shinythemes)
 library(plotly)
 
 # Define UI for application that draws a histogram
@@ -21,5 +25,5 @@ ui <- fluidPage(
              )
       )
   ),
-  fluidRow(plotlyOutput("plotlyd1"))
+  fluidRow(plotlyOutput("plotlyd1") %>% withSpinner())
 )
