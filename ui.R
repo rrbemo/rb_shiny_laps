@@ -10,12 +10,12 @@ ui <- fluidPage(
     fluidRow(
       column(6, tags$h2("Year"),
              radioGroupButtons("driver1",
-                               label = "Driver 1",
+                               label = "Season",
                                choices = c("2022"),
                                direction = "vertical")),
       column(6, tags$h2("Track"),
              radioGroupButtons("driver2",
-                               label = "Driver 2",
+                               label = "Grand Prix",
                                choices = c("Australia"),
                                direction = "vertical")
              )

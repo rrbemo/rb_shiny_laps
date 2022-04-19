@@ -57,8 +57,10 @@ server <- function(input, output) {
                 x = ~LapNumber, y = ~TimeToLeader,
                 legendgroup = ~Driver,
                 mode = "lines") %>%
-      add_trace(name = ~Driver, data = laps[laps$PitInLap == TRUE,],
+      add_trace(name = ~Driver, 
+                data = laps[laps$PitInLap == TRUE,],
                 x = ~LapNumber, y = ~TimeToLeader,
+                mode = "markers",
                 legendgroup = ~Driver,
                 marker = list(line = list(color = "black",
                                           width = 0.5))) %>%
