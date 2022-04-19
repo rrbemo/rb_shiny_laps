@@ -1,9 +1,9 @@
 library(shiny)
 library(shinycssloaders)
-library(shinydashboard)
+#library(shinydashboard)
 library(shinyWidgets)
-library(shinyjs)
-library(shinythemes)
+#library(shinyjs)
+#library(shinythemes)
 library(plotly)
 
 # Define UI for application that draws a histogram
