@@ -10,20 +10,12 @@ library(plotly)
 ui <- fluidPage(
   fluidRow(
     # Application title
-    titlePanel("Lap times on tires per driver"),
+    titlePanel("F1 Lap Analysis"),
+    fluidRow(fluidRow(plotlyOutput("plotlyd1") %>% withSpinner())),
     fluidRow(
-      column(6, tags$h2("Year"),
-             radioGroupButtons("driver1",
-                               label = "Season",
-                               choices = c("2022"),
-                               direction = "vertical")),
-      column(6, tags$h2("Track"),
-             radioGroupButtons("driver2",
-                               label = "Grand Prix",
-                               choices = c("Australia"),
-                               direction = "vertical")
-             )
-      )
-  ),
-  fluidRow(plotlyOutput("plotlyd1") %>% withSpinner())
+      uiOutput("ui_year_options"),
+      uiOutput("ui_track_options"),
+      uiOutput("ui_session_options")
+    )
+  )
 )
