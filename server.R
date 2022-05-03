@@ -5,7 +5,7 @@ library(jsonlite)
 
 #all_laps <- read_csv("2022_australia.csv") 
 #host_name <- "http://127.0.0.1:5000"
-host_name <- "http://127.0.0.1"
+host_name <- "http://ryanbemowski.com"
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
