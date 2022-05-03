@@ -48,17 +48,19 @@ server <- function(input, output) {
     #data_url <- paste0(host_name, "/fast_f1_events/", input$year_options)
     #print(data_url)
     req(input$track_option)
-    sessions <- events() %>%
-      filter(EventName == input$track_option,) %>%
-      select(Session1, Session2, Session3, Session4, Session5) %>%
-      gather("Session", "SessionName") %>%
-      select(SessionName) %>%
-      filter(SessionName != "None")
+    #sessions <- events() %>%
+    #  filter(EventName == input$track_option,) %>%
+    #  select(Session1, Session2, Session3, Session4, Session5) %>%
+    #  gather("Session", "SessionName") %>%
+    #  select(SessionName) %>%
+    #  filter(SessionName != "None")
     ui <- column(4, tags$h2("Session"),
                  radioGroupButtons("session_option", 
                                    "Sessions in event",
                                    label = "Session",
-                                   choices = sessions$SessionName,
+                                   #choices = sessions$SessionName,
+                                   choices = c("Race"),
+                                   selected = "Race",
                                    direction = "vertical"))
     return(ui)
   })
