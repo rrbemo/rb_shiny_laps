@@ -5,24 +5,25 @@ library(shinyWidgets)
 #library(shinyjs)
 #library(shinythemes)
 library(plotly)
+library(DT)
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
-  dashboardHeader(title = "F1 Dashboard"),
+  dashboardHeader(title = "Ryan Bemowski's Shiny F1 Dashboard"),
   dashboardSidebar(
     sidebarMenu(
-      uiOutput("ui_year_options"),
-      uiOutput("ui_track_options"),
-      uiOutput("ui_session_options"),
+      uiOutput("ui_year_options"),     # Dynamic year inputs
+      uiOutput("ui_track_options"),    # Dynamic track inputs
+      uiOutput("ui_session_options"),  # Dynamic session options
       menuItem("Time To Leader", tabName = "timeToLeader", icon = icon("chart-line")),
-      menuItem("Car Data", tabName = "car_data", icon = icon("magnifying-glass-chart")),
-      menuItem("Car Position", tabName = "pos_data", icon = icon("magnifying-glass-chart"))
+      menuItem("Car Compare", tabName = "car_data", icon = icon("magnifying-glass-chart"))
+      #menuItem("Car Position", tabName = "pos_data", icon = icon("magnifying-glass-chart"))
     )
   ),
   dashboardBody(
     tabItems(
       tabItem(tabName = "timeToLeader",
-              h2("Time to leader"),
+              h2("Ryan Bemowski's F1 Time to leader"),
               fluidRow(
                 # Application title
                 box(width = 12,
@@ -31,17 +32,34 @@ ui <- dashboardPage(
               )
       ),
       tabItem(tabName = "car_data",
-              h2("Car Data Analysis"),
+              h2("Ryan Bemowski's F1 car speed comparison per lap"),
+              fluidRow(
+                box(width = 12,
+                    box(width = 5, 
+                        uiOutput("ui_driver_one_options")),  #Car1 selection 
+                    box(width = 5,
+                        uiOutput("ui_driver_two_options")),  #Car2 selection,
+                    box(width = 2,
+                        uiOutput("ui_lap_options"))          #Lap number selection
+                    )
+              ),
               fluidRow(
                 box(width = 12,
                     plotlyOutput("plotly_car_data") %>% withSpinner()
                 )
               )#,
               #fluidRow(
-              #  box(width = 12,
-              #      uiOutput("ui_driver_to_offset"),
-              #      uiOutput("ui_driver_offset")
-              #  )
+              #  box(
+              #    uiOutput("ui_driver_one"),
+              #    uiOutput("ui_driver_one_offset")
+              #  ),
+              #  box(
+              #    uiOutput("ui_driver_two"),
+              #    uiOutput("ui_driver_two_offset") 
+              #  )#,
+                #box(width = 12,
+                #    DTOutput('telemetry_table') 
+                #)
               #)
       ),
       tabItem(tabName = "pos_data",

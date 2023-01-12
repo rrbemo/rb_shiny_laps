@@ -1,6 +1,7 @@
 library(tidyverse)
 library(lubridate)
 library(plotly)
+library(DT)
 library(jsonlite)
 
 #all_laps <- read_csv("2022_australia.csv") 
@@ -52,19 +53,39 @@ server <- function(input, output) {
                       selected = "Race")
     return(ui)
   })
-  # output$ui_driver_to_offset <- renderUI({
-  #   req(input$session_option)
-  #   ui <- pickerInput("driver_to_offset", "Driver to offset",
-  #                     car_data$CarNumber)
-  # })
-  # output$ui_driver_offset <- renderUI({
-  #   req(input$driver_to_offset)
-  #   ui <- sliderInput("driver_offset", "Telemetry Offset",
-  #                     min = -100,
-  #                     max = 100,
-  #                     value = 0)
-  # })
-  
+  output$ui_driver_one_options <-renderUI({
+    req(input$session_option)
+    ui <- pickerInput("driver_one_option", #"First Driver",
+                      label = "Driver One",
+                      selected = "16",
+                      choices = unique(session_data()$DriverNumber))
+  })
+  output$ui_driver_one_offset <- renderUI({
+    ui <- sliderInput("driver_one_offset", "Telemetry Offset",
+                      min = -100,
+                      max = 100,
+                      value = 0)
+  })
+  output$ui_driver_two_options <-renderUI({
+    req(input$driver_one_option)
+    ui <- pickerInput("driver_two_option", #"Second Driver",
+                      label = "Driver Two",
+                      selected = "55",
+                      choices = unique(session_data()$DriverNumber))
+  })
+  output$ui_driver_two_offset <- renderUI({
+    ui <- sliderInput("driver_two_offset", "Telemetry Offset",
+                      min = -100,
+                      max = 100,
+                      value = 0)
+  })
+  output$ui_lap_options <- renderUI({
+    req(input$driver_one_option)
+    ui <- pickerInput("lap_option",
+                      label = "Lap",
+                      selected = "5",
+                      choices = session_data()$LapNumber)
+  })
   events <- reactive({
     req(input$year_option)
     events <- fromJSON(paste0(host_name, "/fast_f1_events/", input$year_option))
@@ -77,12 +98,28 @@ server <- function(input, output) {
   car_data <- reactive({
     req(input$session_option)
     the_url <- URLencode(paste0(host_name, "/fast_f1_car_data/", input$year_option, "/", input$track_option, "/", input$session_option))
-    session_data <- fromJSON(the_url)
+    session_data <- fromJSON(the_url) %>%
+      mutate(RowNumber = row_number())
   })
   pos_data <- reactive({
     req(input$session_option)
     the_url <- URLencode(paste0(host_name, "/fast_f1_pos_data/", input$year_option, "/", input$track_option, "/", input$session_option))
-    session_data <- fromJSON(the_url)
+    session_data <- fromJSON(the_url)%>%
+      mutate(RowNumber = row_number())
+  })
+  telemetry <- reactive({
+    #req(input$driver_one)
+    #req(input$driver_two)
+    telemetry <- car_data() %>%
+      group_by(CarNumber)
+      
+    ## My original attempt to combine car and position data
+    # telemetry <- car_data() %>%
+    #   full_join(pos_data(), by = c("CarNumber", "RowNumber")) %>%
+    #   mutate(SessionTime_Pos = SessionTime.y,
+    #          SessionTime_Car = SessionTime.x)
+    # #%>%
+     # filter(CarNumber %in% c(input$driver_one, input$driver_two))
   })
   
   output$plotly_time_to_leader <- renderPlotly({
@@ -142,15 +179,46 @@ server <- function(input, output) {
   })
   output$plotly_car_data <- renderPlotly({
     req(input$session_option)
-    df <- car_data() %>%
+    req(input$driver_one_option)
+    req(input$lap_option)
+    
+    car_number <- c(input$driver_one_option, input$driver_two_option) #, input$driver_two_option)
+    lap_number <- input$lap_option
+    print(input$session_option)
+    print(car_number)
+    print(lap_number)
+    lap_df <- session_data() %>%
+      filter(DriverNumber %in% car_number,
+             LapNumber == lap_number)
+    
+    tel_df <- car_data() %>% #telemetry() %>%
+      filter(CarNumber %in% car_number) %>% 
       select(c(CarNumber, SessionTime, Throttle, Brake, Speed)) %>%
-      mutate(Brake = as.numeric(Brake) * 100) 
+      mutate(Brake = as.numeric(Brake) * 100)
+    
+    print(tel_df)
+    
+    df <- tel_df %>%
+      filter((SessionTime >= lap_df$LapStartTime[lap_df$DriverNumber == car_number[1]] 
+                & SessionTime < lap_df$Sector3SessionTime[lap_df$DriverNumber == car_number[1]]
+                & CarNumber == car_number[1])
+             | (SessionTime >= lap_df$LapStartTime[lap_df$DriverNumber == car_number[2]] 
+                & SessionTime < lap_df$Sector3SessionTime[lap_df$DriverNumber == car_number[2]]
+                & CarNumber == car_number[2])) %>%
+      ## Compare by start lap time
+     group_by(CarNumber) %>%
+     mutate(TELEMETRY_NUMBER = row_number(),
+            TELEMETRY_COUNT = n(),
+            TELEMETRY_PROP = TELEMETRY_NUMBER/TELEMETRY_COUNT) %>%
+     ungroup()
+    
+    #print(df)
     #%>%
      # filter(CarNumber == '20')
 
     plot_ly(data = df, type = "scatter") %>%
       add_trace(name = ~CarNumber, 
-                x = ~SessionTime, y = ~Speed,
+                x = ~TELEMETRY_PROP, y = ~Speed,
                 mode = "lines",
                 legendgroup = ~CarNumber,
                 connectgaps = TRUE) %>%
@@ -164,10 +232,14 @@ server <- function(input, output) {
       #          mode = "lines",
       #          legendgroup = ~CarNumber,
       #          connectgaps = TRUE) %>%
-      layout(yaxis = list(zeroline = FALSE),
-             xaxis = list(zeroline = FALSE)) # Reverse the y axis so top car is ahead.
+      layout(yaxis = list(title = "Speed (kph)", 
+                          zeroline = FALSE),
+             xaxis = list(title = "Lap Progress",
+                          tickformat = ".0%",
+                          zeroline = FALSE)) # Reverse the y axis so top car is ahead.
   })
   output$plotly_pos_data <- renderPlotly({
+    # TODO: Combine lap data with position data so we can see lap speed. 
     req(input$session_option)
     df <- pos_data() %>%
       select(c(CarNumber, SessionTime, X, Y, Z)) %>%
@@ -180,6 +252,10 @@ server <- function(input, output) {
                 connectgaps = TRUE) %>%
       layout(yaxis = list(zeroline = FALSE),
              xaxis = list(zeroline = FALSE)) # Reverse the y axis so top car is ahead.
+  })
+  
+  output$telemetry_table <- renderDT({
+    telemetry()
   })
   #observeEvent(events(), {
   #  updateGroupButtons(inputId = "track_options", choices = events()$EventName)
