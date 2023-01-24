@@ -31,8 +31,19 @@ ui <- dashboardPage(
               fluidRow(
                 # Application title
                 box(width = 12,
-                    plotlyOutput("plotly_time_to_leader") %>% withSpinner()
+                    plotlyOutput("plotly_time_to_leader") %>% withSpinner() #proxy.height = "600px")
                 )
+              ), 
+              fluidRow(
+                # # Application title
+                # box(width = 12,
+                #     ## Starting position,
+                #     column(width = 6,
+                #            ),
+                #     ## Ending position
+                #     column(width = 6,
+                #            )
+                # )
               )
       ),
       tabItem(tabName = "car_data",
@@ -51,10 +62,10 @@ ui <- dashboardPage(
                 box(width = 12,
                     column(width = 4,
                            uiOutput("ui_driver_one_options")),
-                    column(width = 1,
+                    column(width = 2, #1,
                            uiOutput("ui_lap_one_options")),
-                    column(width = 1,
-                           checkboxInput("synclap", "Sync Lap?", value = TRUE)),
+                    #column(width = 1,
+                    #       checkboxInput("synclap", "Sync Lap?", value = TRUE)),
                     column(width = 4,
                            uiOutput("ui_driver_two_options")),
                     column(width = 2,
@@ -69,24 +80,6 @@ ui <- dashboardPage(
               fluidRow(
                 box(width = 12,
                     uiOutput("ui_car_lap_compare")
-                    # column(width = 5,
-                    #        style = "text-align:left;",
-                    #        uiOutput("ui_driver_one_info")),
-                    # column(width = 2,
-                    #        style = "text-align:center;",
-                    #        h1("Driver"),
-                    #        p("Compound(laps)"),
-                    #        h2("Lap"),
-                    #        h3("Lap Time"),
-                    #        p("Sector 1"),
-                    #        p("Sector 2"),
-                    #        p("Sector 3"),
-                    #        h3("Top Speed"),
-                    #        h3("Average Speed"),
-                    #        p("Min Speed")),
-                    # column(width = 5,
-                    #        style = "text-align:right;",
-                    #        uiOutput("ui_driver_two_info"))
                     )
               )
               #,

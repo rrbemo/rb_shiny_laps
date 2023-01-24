@@ -2,12 +2,25 @@ library(tidyverse)
 library(lubridate)
 library(plotly)
 library(DT)
+library(colorspace)
 library(jsonlite)
 
 #all_laps <- read_csv("2022_australia.csv") 
-host_name <- "http://127.0.0.1:5000"
-#host_name <- "http://127.0.0.1"
+#host_name <- "http://127.0.0.1:5000"
+host_name <- "http://127.0.0.1"
 
+# Colors were set to reflect TV broadcast colors of 2021 season: 
+# https://www.reddit.com/r/formula1/comments/lfpyfp/f1_2021_team_colors_hex_codes/
+team_color <- c("Ferrari" = "#DC0000",
+                "Mercedes" = "#00D2BE",
+                "Haas F1 Team" = "#CCCCCC",
+                "Alfa Romeo" = "#900000",
+                "Alpine" = "#0090FF",
+                "AlphaTauri" = "#2B4562",
+                "Aston Martin" = "#006F62",
+                "Williams" = "#005AFF",
+                "McLaren" = "#FF8700",
+                "Red Bull Racing" = "#0600EF")
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
@@ -56,7 +69,7 @@ server <- function(input, output) {
   output$ui_driver_one_options <-renderUI({
     req(input$session_option)
     ui <- pickerInput("driver_one_option", #"First Driver",
-                      label = "Driver One",
+                      label = "Car One",
                       selected = "16",
                       choices = unique(session_data()$DriverNumber))
   })
@@ -70,12 +83,12 @@ server <- function(input, output) {
   output$ui_driver_two_options <-renderUI({
     req(input$driver_one_option)
     ui <- pickerInput("driver_two_option", #"Second Driver",
-                      label = "Driver Two",
+                      label = "Car Two",
                       selected = "55",
                       choices = unique(session_data()$DriverNumber))
   })
   output$ui_lap_two_options <- renderUI({
-    req(input$driver_two_option)
+    req(input$driver_one_option)
     #req(input$synclap)
     ui <- pickerInput("lap_two_option",
                       label = "Lap",
@@ -89,28 +102,28 @@ server <- function(input, output) {
     req(car_lap_details_data_two)
     
     row_size <- c("vs." = "h1",
-                  "Compound(laps)" = "p",
+                  "Compound (laps)" = "p",
                   "Lap" = "h2",
                   "Lap Time" = "h3",
                   "Sector 1" = "p",
                   "Sector 2" = "p",
                   "Sector 3" = "p",
-                  "Top Speed" = "h3",
-                  "Avg. Speed" = "h3",
-                  "Low Speed" = "p")
+                  "Top Speed (kph)" = "h3",
+                  "Avg. Speed (kph)" = "h3",
+                  "Low Speed (kph)" = "p")
     car1 <- car_lap_ui_data(car_lap_details_data_one(), car_lap_data_one())
     car2 <- car_lap_ui_data(car_lap_details_data_two(), car_lap_data_two())
     ui <- NULL
     for (name in names(row_size)) {
       ui_row <- fluidRow(width = 12,
-                         column(width = 5,
-                                style = "text-align:left;",
+                         column(width = 4,
+                                style = "text-align:right;",
                                 do.call(row_size[name], list(car1[name]))),
-                         column(width = 2,
+                         column(width = 4,
                                 style = "text-align:center;",
                                 do.call(row_size[name], list(name))),
-                         column(width = 5,
-                                style = "text-align:right;",
+                         column(width = 4,
+                                style = "text-align:left;",
                                 do.call(row_size[name], list(car2[name])))
                          )
       if (is.null(ui)) {
@@ -127,16 +140,16 @@ server <- function(input, output) {
     c("vs." = paste(car_lap_details$Team, "-",
                     car_lap_details$DriverNumber,
                     car_lap_details$Driver),
-      "Compound(laps)" = paste0(car_lap_details$Compound, "(", 
+      "Compound (laps)" = paste0(car_lap_details$Compound, "(", 
                                 car_lap_details$TyreLife, ")"),
       "Lap" = car_lap_details$LapNumber,
       "Lap Time" = format_time(car_lap_details$LapTime),
       "Sector 1" = format_time(car_lap_details$Sector1Time),
       "Sector 2" = format_time(car_lap_details$Sector2Time),
       "Sector 3" = format_time(car_lap_details$Sector3Time),
-      "Top Speed" = paste(max(car_lap_tel$Speed), "kph"),
-      "Avg. Speed" = paste(round(mean(car_lap_tel$Speed), 1), "kph"),
-      "Low Speed" = paste(min(car_lap_tel$Speed), "kph")
+      "Top Speed (kph)" = max(car_lap_tel$Speed),
+      "Avg. Speed (kph)" = round(mean(car_lap_tel$Speed), 1),
+      "Low Speed (kph)" = min(car_lap_tel$Speed)
     )
   }
   format_time <- function(ftime) {
@@ -188,7 +201,8 @@ server <- function(input, output) {
     req(input$lap_one_option)
     
     df <- car_lap_data(input$driver_one_option, 
-                       input$lap_one_option)
+                       input$lap_one_option) %>%
+      mutate(group_name = paste0("Car One: ", input$driver_one_option, "(lap ", input$lap_one_option, ")"))
   })
   car_lap_details_data_one <- reactive({
     req(session_data)
@@ -204,7 +218,8 @@ server <- function(input, output) {
     req(input$lap_two_option)
     
     df <- car_lap_data(input$driver_two_option, 
-                       input$lap_two_option)
+                       input$lap_two_option) %>%
+      mutate(group_name = paste0("Car Two: ", input$driver_two_option, "(lap ", input$lap_two_option, ")"))
   })
   car_lap_details_data_two <- reactive({
     req(session_data)
@@ -234,8 +249,7 @@ server <- function(input, output) {
              & CarNumber == car_num) %>%
       mutate(TELEMETRY_NUMBER = row_number(),
              TELEMETRY_COUNT = n(),
-             TELEMETRY_PROP = TELEMETRY_NUMBER/TELEMETRY_COUNT,
-             group_name = paste0("Driver:", car_num, " - Lap:", lap_num))
+             TELEMETRY_PROP = TELEMETRY_NUMBER/TELEMETRY_COUNT)
   }
   
   output$plotly_time_to_leader <- renderPlotly({
@@ -245,7 +259,9 @@ server <- function(input, output) {
                                FALSE,
                                TRUE)) %>%
       select(c(Driver, DriverNumber, LapNumber, Team, Sector1Time, Sector2Time, Sector3Time, LapStartTime, LapTime, TyreLife, Compound, PitInLap, TrackStatus)) %>%
-      mutate(Sector1Time = ifelse(!is.na(Sector1Time),
+      mutate(TraceColor = team_color[Team],
+             TeamDriver = paste0(Team, ": ", Driver),
+             Sector1Time = ifelse(!is.na(Sector1Time),
                                   dmilliseconds(Sector1Time),
                                   NA),
              Sector2Time = ifelse(!is.na(Sector2Time),
@@ -268,6 +284,8 @@ server <- function(input, output) {
     #    filter(LapTime <= min(laps$LapTime) * 1.2) #%>%
     #    filter(PitLap == FALSE)
     
+    #print(unique(laps[, c("TraceColor", "Team")]))
+    
     lap_end_times <- laps %>%
       group_by(LapNumber) %>%
       summarise(MinLapEndTime = min(LapEndTime, na.rm = TRUE))
@@ -277,15 +295,23 @@ server <- function(input, output) {
       mutate(TimeToLeader = LapEndTime - MinLapEndTime)
     
     plot_ly(type = "scatter") %>%
-      add_trace(name = ~Driver, data = laps, 
+      add_trace(name = ~Driver, data = laps,
                 x = ~LapNumber, y = ~TimeToLeader,
                 legendgroup = ~Driver,
                 mode = "lines",
+                color = ~I(TraceColor),
+                text = ~TeamDriver,
+                # hoverinfo = "text",
+                hovertemplate = paste(
+                  "%{text}",
+                  "<extra>Lap %{x:,}</extra>"
+                ),
                 connectgaps = TRUE) %>%
       add_trace(name = ~Driver, 
                 data = laps[laps$PitInLap == TRUE,],
                 x = ~LapNumber, y = ~TimeToLeader,
                 mode = "markers",
+                color = ~I(TraceColor),
                 legendgroup = ~Driver,
                 marker = list(line = list(color = "black",
                                           width = 0.5))) %>%
@@ -338,19 +364,32 @@ server <- function(input, output) {
     #          group_name = paste0("Driver:", car_number[2], " - Lap:", lap_number[2]))
     req(car_lap_data_one)
     req(car_lap_data_two)
+    req(car_lap_details_data_one)
+    req(car_lap_details_data_two)
     
-    df <- car_lap_data_one() %>%
-      rbind(car_lap_data_two())
+    car_one <- car_lap_data_one() %>%
+      left_join(car_lap_details_data_one(), by = c("CarNumber" = "DriverNumber")) %>%
+      mutate(TraceColor = team_color[Team])
     
-    #print(df)
-    #%>%
-     # filter(CarNumber == '20')
-
+    car_two <- car_lap_data_two() %>%
+      left_join(car_lap_details_data_two(), by = c("CarNumber" = "DriverNumber")) %>%
+      mutate(TraceColor = lighten(team_color[Team], 0.50))
+                        
+    df <- car_one %>%
+      rbind(car_two) %>% 
+      mutate(TeamDriver = paste0(Team, ": ", Driver))
+    
     plot_ly(data = df, type = "scatter") %>%
       add_trace(name = ~group_name, 
                 x = ~TELEMETRY_PROP, y = ~Speed,
                 mode = "lines",
                 legendgroup = ~group_name,
+                color = ~I(TraceColor),
+                text = ~TeamDriver,
+                hovertemplate = paste(
+                  "%{text}",
+                  "<extra>speed %{y:,}</extra>"
+                ),
                 connectgaps = TRUE) %>%
       #add_trace(name = "Throttle", 
       #          x = ~SessionTime, y = ~Throttle,
